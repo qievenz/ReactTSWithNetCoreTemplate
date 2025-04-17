@@ -37,86 +37,129 @@ jobs:
         # Extrae el nombre del repo de 'owner/repo-name'
         run: echo "::set-output name=value::$(echo '${{ github.repository }}' | awk -F / '{print $2}')"
 
-      - name: Define Names
+      - name: Define Names (Capitalized and Lowercase)
         id: names
         run: |
-          echo "::set-output name=placeholder::${{ steps.get_placeholder.outputs.value }}"
-          echo "::set-output name=new_name::${{ steps.repo_name.outputs.value }}"
-          echo "Placeholder: ${{ steps.get_placeholder.outputs.value }}"
-          echo "New Name: ${{ steps.repo_name.outputs.value }}"
+          # 1. Obtener Placeholder Capitalizado
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PLACEHOLDER_CAP="${{ github.event.inputs.placeholder_name_cap }}"
+          else
+            # --- ¡¡IMPORTANTE!! Asegúrate que este sea tu placeholder EXACTO con Mayúscula inicial ---
+            PLACEHOLDER_CAP="Template"
+          fi
+
+          # 2. Obtener Nuevo Nombre Capitalizado (del nombre del repo)
+          NEW_NAME_RAW=$(echo '${{ github.repository }}' | awk -F / '{print $2}')
+          # Intenta capitalizar la primera letra (funciona bien para nombres simples)
+          # Si tus nombres de repo son complejos (ej. con guiones), podrías necesitar lógica más avanzada
+          NEW_NAME_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${NEW_NAME_RAW:0:1})${NEW_NAME_RAW:1}"
+          # Alternativa más simple (siempre usa el nombre del repo tal cual):
+          # NEW_NAME_CAP=$NEW_NAME_RAW
+
+          # 3. Derivar versiones en minúscula
+          PLACEHOLDER_LC=$(echo "$PLACEHOLDER_CAP" | tr '[:upper:]' '[:lower:]')
+          NEW_NAME_LC=$(echo "$NEW_NAME_CAP" | tr '[:upper:]' '[:lower:]')
+
+          # 4. Validar que no estén vacíos
+          if [[ -z "$PLACEHOLDER_CAP" || -z "$PLACEHOLDER_LC" || -z "$NEW_NAME_CAP" || -z "$NEW_NAME_LC" ]]; then
+            echo "::error::Failed to derive all name variants."
+            exit 1
+          fi
+
+          # 5. Establecer outputs
+          echo "::set-output name=placeholder_cap::$PLACEHOLDER_CAP"
+          echo "::set-output name=placeholder_lc::$PLACEHOLDER_LC"
+          echo "::set-output name=new_name_cap::$NEW_NAME_CAP"
+          echo "::set-output name=new_name_lc::$NEW_NAME_LC"
+
+          echo "Placeholder (Cap): $PLACEHOLDER_CAP"
+          echo "Placeholder (lc):  $PLACEHOLDER_LC"
+          echo "New Name (Cap):    $NEW_NAME_CAP"
+          echo "New Name (lc):     $NEW_NAME_LC"
+        shell: bash
 
       - name: Check if Rename Already Done / Needed
         id: check_rename
         run: |
-          PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
-          # Busca si algún archivo/directorio AÚN contiene el placeholder (insensible a mayúsculas/minúsculas)
-          # El '-print -quit' hace que find se detenga tan pronto encuentre el primero, es más eficiente.
-          if find . -depth -iname "*$PLACEHOLDER*" -print -quit | grep -q .; then
-            echo "Placeholder '$PLACEHOLDER' found. Proceeding with rename."
+          PLACEHOLDER_CAP="${{ steps.names.outputs.placeholder_cap }}"
+          # La búsqueda inicial puede seguir siendo case-insensitive
+          if find . -depth -iname "*$PLACEHOLDER_CAP*" -print -quit | grep -q .; then
+            echo "Placeholder potentially found. Proceeding with rename logic."
             echo "::set-output name=should_rename::true"
           else
-            echo "Placeholder '$PLACEHOLDER' not found. Assuming rename already done or not needed. Skipping steps."
+            echo "Placeholder not found case-insensitively. Assuming rename already done or not needed. Skipping steps."
             echo "::set-output name=should_rename::false"
           fi
         shell: bash
 
-      - name: Rename Files and Directories
+
+      - name: Rename Files and Directories (Case-Aware)
         if: steps.check_rename.outputs.should_rename == 'true'
         id: rename_files_dirs
         run: |
-          PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
-          NEW_NAME="${{ steps.names.outputs.new_name }}"
+          PLACEHOLDER_CAP="${{ steps.names.outputs.placeholder_cap }}"
+          PLACEHOLDER_LC="${{ steps.names.outputs.placeholder_lc }}"
+          NEW_NAME_CAP="${{ steps.names.outputs.new_name_cap }}"
+          NEW_NAME_LC="${{ steps.names.outputs.new_name_lc }}"
 
-          echo "--- Renaming Files/Dirs ---"
-          echo "Placeholder: [$PLACEHOLDER]"
-          echo "New Name:    [$NEW_NAME]"
-          echo "Starting directory: $(pwd)"
-          echo "Listing files containing placeholder (case-sensitive):"
-          find . -depth -name "*$PLACEHOLDER*" || echo "No case-sensitive matches found."
-          echo "Listing files containing placeholder (case-insensitive):"
-          find . -depth -iname "*$PLACEHOLDER*" || echo "No case-insensitive matches found."
-          echo "---"
+          echo "--- Renaming Files/Dirs (Case-Aware) ---"
+          # Usamos find -print0 y read -d para manejar nombres raros (espacios, etc.)
+          find . -depth -print0 | while IFS= read -r -d $'\0' fname; do
+            # Solo procesar si contiene alguna de las variantes (optimización rápida)
+            # Usamos grep -qP para Perl regex case-insensitive
+            if ! echo "$fname" | grep -qP "(?i)${PLACEHOLDER_CAP}"; then
+               continue
+            fi
 
-          # Usa -iname para ser insensible a mayúsculas/minúsculas si es necesario
-          # find . -depth -name "*$PLACEHOLDER*" | while IFS= read -r fname; do
-          find . -depth -iname "*$PLACEHOLDER*" | while IFS= read -r fname; do
-            # Verifica si el archivo/directorio todavía existe (pudo ser renombrado como parte de un directorio padre)
             if [ ! -e "$fname" ]; then
-              echo "Skipping already moved/renamed: $fname"
+              # echo "Skipping already moved/renamed: $fname" # Muy verboso, opcional
               continue
             fi
 
-            # Construye el nuevo nombre usando expansión de parámetros de Bash
-            # Esto es generalmente más seguro que sed para nombres de archivo
-            new_fname="${fname//$PLACEHOLDER/$NEW_NAME}" # Reemplazo global insensible al caso si usaste -iname
+            # Copia original para comparar al final
+            original_fname="$fname"
+            # Aplica reemplazos: Primero Capitalizado, luego minúscula. ¡Importante el orden si hay solapamiento!
+            # Usamos sed con delimitador # y SIN flag 'i' (case-sensitive por pasada)
+            new_fname_temp=$(echo "$fname" | sed "s#$PLACEHOLDER_CAP#$NEW_NAME_CAP#g")
+            new_fname=$(echo "$new_fname_temp" | sed "s#$PLACEHOLDER_LC#$NEW_NAME_LC#g")
 
-            # Si el nombre realmente cambió, intenta renombrar
-            if [ "$fname" != "$new_fname" ]; then
-              # Crea el directorio padre si no existe (necesario si renombras algo como dir/subdir)
+
+            if [ "$original_fname" != "$new_fname" ]; then
               mkdir -p "$(dirname "$new_fname")"
-              echo "Attempting rename: '$fname' -> '$new_fname'"
-              # Usa mv con -v para ver la salida en los logs
-              mv -v "$fname" "$new_fname"
+              echo "Attempting rename: '$original_fname' -> '$new_fname'"
+              mv -v "$original_fname" "$new_fname"
               if [ $? -ne 0 ]; then
-                 echo "ERROR: Failed to rename $fname"
-                 # Puedes decidir si fallar el workflow aquí: exit 1
+                 echo "ERROR: Failed to rename $original_fname"
               fi
-            else
-              echo "Skipping (no effective name change): $fname"
+            # else
+              # echo "Skipping (no effective name change): $original_fname" # Muy verboso
             fi
           done
           echo "--- Renaming Complete ---"
-        shell: bash # Asegúrate de que se ejecuta con bash
+        shell: bash
 
-      - name: Replace Content in Files (Linux/Ubuntu Runner)
+      - name: Replace Content in Files (Case-Aware)
         if: steps.check_rename.outputs.should_rename == 'true'
         run: |
-          PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
-          NEW_NAME="${{ steps.names.outputs.new_name }}"
-          # Busca en todos los archivos de texto comunes. Ajusta según tus tipos de archivo.
-          find . -type f \( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" \) -exec sed -i "s/$PLACEHOLDER/$NEW_NAME/g" {} +
-        # Si usas windows-latest, usarías Get-Content | ForEach-Object { $_ -replace $placeholder, $newName } | Set-Content
+          PLACEHOLDER_CAP="${{ steps.names.outputs.placeholder_cap }}"
+          PLACEHOLDER_LC="${{ steps.names.outputs.placeholder_lc }}"
+          NEW_NAME_CAP="${{ steps.names.outputs.new_name_cap }}"
+          NEW_NAME_LC="${{ steps.names.outputs.new_name_lc }}"
 
+          echo "--- Replacing Content (Case-Aware) ---"
+          # Definir los tipos de archivo a procesar
+          FILE_PATTERNS=( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" )
+
+          # Usar find con -exec sed y dos expresiones -e
+          # La primera reemplaza Template -> NuevoNombre (case-sensitive)
+          # La segunda reemplaza template -> nuevonombre (case-sensitive)
+          find . -type f \( "${FILE_PATTERNS[@]}" \) -exec sed -i \
+            -e "s#$PLACEHOLDER_CAP#$NEW_NAME_CAP#g" \
+            -e "s#$PLACEHOLDER_LC#$NEW_NAME_LC#g" {} +
+
+          echo "--- Content Replacement Complete ---"
+        shell: bash
+        
       - name: Commit and Push Changes
         if: steps.check_rename.outputs.should_rename == 'true'
         run: |
@@ -127,6 +170,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: Rename project from ${{ steps.names.outputs.placeholder }} to ${{ steps.names.outputs.new_name }}"
+            git commit -m "chore: Rename project from ${{ steps.names.outputs.placeholder_cap }}/* to ${{ steps.names.outputs.new_name_cap }}/* (case-aware)"
             git push
           fi
