@@ -44,17 +44,12 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             PLACEHOLDER_CAP="${{ github.event.inputs.placeholder_name_cap }}"
           else
-            # --- ¡¡IMPORTANTE!! Asegúrate que este sea tu placeholder EXACTO con Mayúscula inicial ---
             PLACEHOLDER_CAP="Template"
           fi
 
           # 2. Obtener Nuevo Nombre Capitalizado (del nombre del repo)
           NEW_NAME_RAW=$(echo '${{ github.repository }}' | awk -F / '{print $2}')
-          # Intenta capitalizar la primera letra (funciona bien para nombres simples)
-          # Si tus nombres de repo son complejos (ej. con guiones), podrías necesitar lógica más avanzada
           NEW_NAME_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${NEW_NAME_RAW:0:1})${NEW_NAME_RAW:1}"
-          # Alternativa más simple (siempre usa el nombre del repo tal cual):
-          # NEW_NAME_CAP=$NEW_NAME_RAW
 
           # 3. Derivar versiones en minúscula
           PLACEHOLDER_LC=$(echo "$PLACEHOLDER_CAP" | tr '[:upper:]' '[:lower:]')
@@ -82,7 +77,6 @@ jobs:
         id: check_rename
         run: |
           PLACEHOLDER_CAP="${{ steps.names.outputs.placeholder_cap }}"
-          # La búsqueda inicial puede seguir siendo case-insensitive
           if find . -depth -iname "*$PLACEHOLDER_CAP*" -print -quit | grep -q .; then
             echo "Placeholder potentially found. Proceeding with rename logic."
             echo "::set-output name=should_rename::true"
@@ -103,10 +97,7 @@ jobs:
           NEW_NAME_LC="${{ steps.names.outputs.new_name_lc }}"
 
           echo "--- Renaming Files/Dirs (Case-Aware) ---"
-          # Usamos find -print0 y read -d para manejar nombres raros (espacios, etc.)
           find . -depth -print0 | while IFS= read -r -d $'\0' fname; do
-            # Solo procesar si contiene alguna de las variantes (optimización rápida)
-            # Usamos grep -qP para Perl regex case-insensitive
             if ! echo "$fname" | grep -qP "(?i)${PLACEHOLDER_CAP}"; then
                continue
             fi
@@ -116,10 +107,7 @@ jobs:
               continue
             fi
 
-            # Copia original para comparar al final
             original_fname="$fname"
-            # Aplica reemplazos: Primero Capitalizado, luego minúscula. ¡Importante el orden si hay solapamiento!
-            # Usamos sed con delimitador # y SIN flag 'i' (case-sensitive por pasada)
             new_fname_temp=$(echo "$fname" | sed "s#$PLACEHOLDER_CAP#$NEW_NAME_CAP#g")
             new_fname=$(echo "$new_fname_temp" | sed "s#$PLACEHOLDER_LC#$NEW_NAME_LC#g")
 
@@ -131,8 +119,6 @@ jobs:
               if [ $? -ne 0 ]; then
                  echo "ERROR: Failed to rename $original_fname"
               fi
-            # else
-              # echo "Skipping (no effective name change): $original_fname" # Muy verboso
             fi
           done
           echo "--- Renaming Complete ---"
@@ -147,7 +133,6 @@ jobs:
           NEW_NAME_LC="${{ steps.names.outputs.new_name_lc }}"
 
           echo "--- Replacing Content (Case-Aware) ---"
-          # Definir los tipos de archivo a procesar
           FILE_PATTERNS=( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" )
 
           # Usar find con -exec sed y dos expresiones -e
