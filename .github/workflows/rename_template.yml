@@ -12,6 +12,8 @@ on:
 jobs:
   rename:
     runs-on: ubuntu-latest # O windows-latest si prefieres PowerShell nativo
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -28,18 +30,48 @@ jobs:
         run: |
           echo "::set-output name=placeholder::${{ github.event.inputs.placeholder_name }}"
           echo "::set-output name=new_name::${{ steps.repo_name.outputs.value }}"
-
-      - name: Rename Files and Directories (Linux/Ubuntu Runner)
-        # Cuidado con este paso, puede ser complejo y necesitar ajustes
-        # Usar find + rename es más seguro que un solo comando complejo
+      - name: Rename Files and Directories
+        id: rename_files_dirs
         run: |
           PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
           NEW_NAME="${{ steps.names.outputs.new_name }}"
-          # Renombrar archivos y directorios (iterar varias veces por si hay anidamiento)
-          for i in 1 2 3; do
-            find . -depth -name "*$PLACEHOLDER*" -exec bash -c 'fname="{}" ; new_fname=$(echo "$fname" | sed "s/$PLACEHOLDER/$NEW_NAME/g"); echo "Renaming $fname to $new_fname"; mv "$fname" "$new_fname"' \;
+          echo "--- Renaming Files/Dirs ---"
+          echo "Placeholder: [$PLACEHOLDER]"
+          echo "New Name:    [$NEW_NAME]"
+          echo "Starting directory: $(pwd)"
+          echo "Listing files containing placeholder (case-sensitive):"
+          find . -depth -name "*$PLACEHOLDER*" || echo "No case-sensitive matches found."
+          echo "Listing files containing placeholder (case-insensitive):"
+          find . -depth -iname "*$PLACEHOLDER*" || echo "No case-insensitive matches found."
+          echo "---"
+          # Usa -iname para ser insensible a mayúsculas/minúsculas si es necesario
+          # find . -depth -name "*$PLACEHOLDER*" | while IFS= read -r fname; do
+          find . -depth -iname "*$PLACEHOLDER*" | while IFS= read -r fname; do
+            # Verifica si el archivo/directorio todavía existe (pudo ser renombrado como parte de un directorio padre)
+            if [ ! -e "$fname" ]; then
+              echo "Skipping already moved/renamed: $fname"
+              continue
+            fi
+            # Construye el nuevo nombre usando expansión de parámetros de Bash
+            # Esto es generalmente más seguro que sed para nombres de archivo
+            new_fname="${fname//$PLACEHOLDER/$NEW_NAME}" # Reemplazo global insensible al caso si usaste -iname
+            # Si el nombre realmente cambió, intenta renombrar
+            if [ "$fname" != "$new_fname" ]; then
+              # Crea el directorio padre si no existe (necesario si renombras algo como dir/subdir)
+              mkdir -p "$(dirname "$new_fname")"
+              echo "Attempting rename: '$fname' -> '$new_fname'"
+              # Usa mv con -v para ver la salida en los logs
+              mv -v "$fname" "$new_fname"
+              if [ $? -ne 0 ]; then
+                 echo "ERROR: Failed to rename $fname"
+                 # Puedes decidir si fallar el workflow aquí: exit 1
+              fi
+            else
+              echo "Skipping (no effective name change): $fname"
+            fi
           done
-        # Si usas windows-latest, usarías comandos de PowerShell para renombrar
+          echo "--- Renaming Complete ---"
+        shell: bash # Asegúrate de que se ejecuta con bash
 
       - name: Replace Content in Files (Linux/Ubuntu Runner)
         # Usar sed o similar. Cuidado con reemplazar cosas que no debes.
@@ -62,5 +94,3 @@ jobs:
             git commit -m "chore: Rename project from ${{ steps.names.outputs.placeholder }} to ${{ steps.names.outputs.new_name }}"
             git push
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub Actions tiene acceso automático a este token
