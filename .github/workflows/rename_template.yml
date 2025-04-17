@@ -1,0 +1,66 @@
+name: Rename Template Project
+
+on:
+  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions
+    inputs:
+      placeholder_name:
+        description: 'Placeholder name to replace (e.g., TemplateProj)'
+        required: true
+        default: 'TemplateProj'
+      # No necesitamos pedir el nuevo nombre, lo podemos sacar del contexto
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest # O windows-latest si prefieres PowerShell nativo
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Necesario para poder hacer push después
+
+      - name: Get New Repository Name
+        id: repo_name
+        # Extrae el nombre del repo de 'owner/repo-name'
+        run: echo "::set-output name=value::$(echo '${{ github.repository }}' | awk -F / '{print $2}')"
+
+      - name: Define Names
+        id: names
+        run: |
+          echo "::set-output name=placeholder::${{ github.event.inputs.placeholder_name }}"
+          echo "::set-output name=new_name::${{ steps.repo_name.outputs.value }}"
+
+      - name: Rename Files and Directories (Linux/Ubuntu Runner)
+        # Cuidado con este paso, puede ser complejo y necesitar ajustes
+        # Usar find + rename es más seguro que un solo comando complejo
+        run: |
+          PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
+          NEW_NAME="${{ steps.names.outputs.new_name }}"
+          # Renombrar archivos y directorios (iterar varias veces por si hay anidamiento)
+          for i in 1 2 3; do
+            find . -depth -name "*$PLACEHOLDER*" -exec bash -c 'fname="{}" ; new_fname=$(echo "$fname" | sed "s/$PLACEHOLDER/$NEW_NAME/g"); echo "Renaming $fname to $new_fname"; mv "$fname" "$new_fname"' \;
+          done
+        # Si usas windows-latest, usarías comandos de PowerShell para renombrar
+
+      - name: Replace Content in Files (Linux/Ubuntu Runner)
+        # Usar sed o similar. Cuidado con reemplazar cosas que no debes.
+        run: |
+          PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
+          NEW_NAME="${{ steps.names.outputs.new_name }}"
+          # Busca en todos los archivos de texto comunes. Ajusta según tus tipos de archivo.
+          find . -type f \( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" \) -exec sed -i "s/$PLACEHOLDER/$NEW_NAME/g" {} +
+        # Si usas windows-latest, usarías Get-Content | ForEach-Object { $_ -replace $placeholder, $newName } | Set-Content
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          # Comprobar si hay cambios antes de hacer commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: Rename project from ${{ steps.names.outputs.placeholder }} to ${{ steps.names.outputs.new_name }}"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub Actions tiene acceso automático a este token
