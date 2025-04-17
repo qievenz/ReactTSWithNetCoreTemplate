@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Template.API", "Template.API\Template.API.csproj", "{BB6836D9-DD13-4F95-A846-784B88897D8C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReactTSWithNetCoreTemplate.API", "ReactTSWithNetCoreTemplate.API\ReactTSWithNetCoreTemplate.API.csproj", "{BB6836D9-DD13-4F95-A846-784B88897D8C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Template.Tests", "Template.Tests\Template.Tests.csproj", "{B7D261E0-BDDF-4C36-99CF-546E533FFB9C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReactTSWithNetCoreTemplate.Tests", "ReactTSWithNetCoreTemplate.Tests\ReactTSWithNetCoreTemplate.Tests.csproj", "{B7D261E0-BDDF-4C36-99CF-546E533FFB9C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1203E39D-5EB9-4428-BDB4-90D1D2A42B81}"
 	ProjectSection(SolutionItems) = preProject
@@ -13,11 +13,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Template.Application", "Template.Application\Template.Application.csproj", "{F6E810AB-8F2F-444E-9581-891BD8954D14}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReactTSWithNetCoreTemplate.Application", "ReactTSWithNetCoreTemplate.Application\ReactTSWithNetCoreTemplate.Application.csproj", "{F6E810AB-8F2F-444E-9581-891BD8954D14}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Template.Infrastructure", "Template.Infrastructure\Template.Infrastructure.csproj", "{9F59D25E-3F15-4270-8B65-FAD7D2950E7B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReactTSWithNetCoreTemplate.Infrastructure", "ReactTSWithNetCoreTemplate.Infrastructure\ReactTSWithNetCoreTemplate.Infrastructure.csproj", "{9F59D25E-3F15-4270-8B65-FAD7D2950E7B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Template.Core", "Template.Core\Template.Core.csproj", "{494F268C-B96B-40C2-BCDB-D7F2B0FBA248}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReactTSWithNetCoreTemplate.Core", "ReactTSWithNetCoreTemplate.Core\ReactTSWithNetCoreTemplate.Core.csproj", "{494F268C-B96B-40C2-BCDB-D7F2B0FBA248}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01 - Client", "01 - Client", "{F186EC5D-8DAB-403F-90BB-28FBC38E5475}"
 EndProject
@@ -31,7 +31,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "05 - Core", "05 - Core", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "00 - Tests", "00 - Tests", "{5A91E43F-8A7D-4018-B2C1-85E90248B60D}"
 EndProject
-Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "template.client", "template.client\template.client.esproj", "{E8673F3A-D007-4FD7-A80B-3B213E85556D}"
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "reacttswithnetcoretemplate.client", "reacttswithnetcoretemplate.client\reacttswithnetcoretemplate.client.esproj", "{E8673F3A-D007-4FD7-A80B-3B213E85556D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Template.Core\Template.Core.csproj" />
+    <ProjectReference Include="..\ReactTSWithNetCoreTemplate.Core\ReactTSWithNetCoreTemplate.Core.csproj" />
   </ItemGroup>
 
 </Project>

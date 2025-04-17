@@ -1,6 +1,6 @@
 using Serilog;
 using Serilog.Events;
-using Template.API.Extensions;
+using ReactTSWithNetCoreTemplate.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName;

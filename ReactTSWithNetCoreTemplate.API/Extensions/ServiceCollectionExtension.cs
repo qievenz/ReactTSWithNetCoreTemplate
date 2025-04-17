@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
-using Template.Core.Settings;
+using ReactTSWithNetCoreTemplate.Core.Settings;
 
-namespace Template.API.Extensions
+namespace ReactTSWithNetCoreTemplate.API.Extensions
 {
     public static class ServiceCollectionExtension
     {
