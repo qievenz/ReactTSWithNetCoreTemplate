@@ -4,9 +4,9 @@ on:
   workflow_dispatch: # Permite ejecución manual desde la pestaña Actions
     inputs:
       placeholder_name:
-        description: 'Placeholder name to replace (e.g., TemplateProj)'
+        description: 'Placeholder name to replace (e.g., Template)'
         required: true
-        default: 'TemplateProj'
+        default: 'Template'
   push:
     branches:
       - main 
@@ -23,6 +23,15 @@ jobs:
         with:
           fetch-depth: 0 # Necesario para poder hacer push después
 
+      - name: Get Placeholder Name (from input or default)
+        id: get_placeholder
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "::set-output name=value::${{ github.event.inputs.placeholder_name }}"
+          else
+            echo "::set-output name=value::Template"
+          fi
+
       - name: Get New Repository Name
         id: repo_name
         # Extrae el nombre del repo de 'owner/repo-name'
@@ -31,8 +40,10 @@ jobs:
       - name: Define Names
         id: names
         run: |
-          echo "::set-output name=placeholder::${{ github.event.inputs.placeholder_name }}"
+          echo "::set-output name=placeholder::${{ steps.get_placeholder.outputs.value }}"
           echo "::set-output name=new_name::${{ steps.repo_name.outputs.value }}"
+          echo "Placeholder: ${{ steps.get_placeholder.outputs.value }}"
+          echo "New Name: ${{ steps.repo_name.outputs.value }}"
 
       - name: Check if Rename Already Done / Needed
         id: check_rename
