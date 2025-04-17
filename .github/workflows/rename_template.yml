@@ -1,96 +1,123 @@
 name: Rename Template Project
 
 on:
-  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions
+  # Mantenemos workflow_dispatch por si falla y necesitas re-ejecutar manualmente
+  workflow_dispatch:
     inputs:
       placeholder_name:
         description: 'Placeholder name to replace (e.g., TemplateProj)'
         required: true
-        default: 'TemplateProj'
-      # No necesitamos pedir el nuevo nombre, lo podemos sacar del contexto
+        default: 'TemplateProj' # Asegúrate que este sea el placeholder correcto
+
+  # --- AÑADE O MODIFICA ESTA SECCIÓN ---
+  push:
+    branches:
+      - main # O 'master' si esa es tu rama por defecto
+# -------------------------------------
 
 jobs:
   rename:
-    runs-on: ubuntu-latest # O windows-latest si prefieres PowerShell nativo
+    runs-on: ubuntu-latest
     permissions:
       contents: write
+    # --- AÑADE ESTA CONDICIÓN PARA INTENTAR CORRER SOLO EN LA CREACIÓN ---
+    # Esto verifica si el push es el inicial para una rama (SHA 'before' es todo ceros)
+    # Puede que no sea 100% infalible en todos los escenarios de creación de template,
+    # por eso añadiremos una comprobación extra DENTRO del script.
+    if: github.event_name == 'workflow_dispatch' || github.event.before == '0000000000000000000000000000000000000000'
+    # ----------------------------------------------------------------------
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Necesario para poder hacer push después
+          fetch-depth: 0 # Importante para tener el historial y poder hacer push
+
+      - name: Get Placeholder Name (from input or default)
+        id: get_placeholder
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "::set-output name=value::${{ github.event.inputs.placeholder_name }}"
+          else
+            # Aquí debes poner el placeholder fijo de tu template
+            echo "::set-output name=value::TemplateProj"
+          fi
 
       - name: Get New Repository Name
         id: repo_name
-        # Extrae el nombre del repo de 'owner/repo-name'
         run: echo "::set-output name=value::$(echo '${{ github.repository }}' | awk -F / '{print $2}')"
 
       - name: Define Names
         id: names
         run: |
-          echo "::set-output name=placeholder::${{ github.event.inputs.placeholder_name }}"
+          echo "::set-output name=placeholder::${{ steps.get_placeholder.outputs.value }}"
           echo "::set-output name=new_name::${{ steps.repo_name.outputs.value }}"
+          echo "Placeholder: ${{ steps.get_placeholder.outputs.value }}"
+          echo "New Name: ${{ steps.repo_name.outputs.value }}"
+
+      # --- MODIFICACIÓN IMPORTANTE: AÑADIR COMPROBACIÓN INTERNA ---
+      - name: Check if Rename Already Done / Needed
+        id: check_rename
+        run: |
+          PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
+          # Busca si algún archivo/directorio AÚN contiene el placeholder (insensible a mayúsculas/minúsculas)
+          # El '-print -quit' hace que find se detenga tan pronto encuentre el primero, es más eficiente.
+          if find . -depth -iname "*$PLACEHOLDER*" -print -quit | grep -q .; then
+            echo "Placeholder '$PLACEHOLDER' found. Proceeding with rename."
+            echo "::set-output name=should_rename::true"
+          else
+            echo "Placeholder '$PLACEHOLDER' not found. Assuming rename already done or not needed. Skipping steps."
+            echo "::set-output name=should_rename::false"
+          fi
+        shell: bash
+
       - name: Rename Files and Directories
-        id: rename_files_dirs
+        # Ejecutar solo si la comprobación anterior dice que sí
+        if: steps.check_rename.outputs.should_rename == 'true'
+        # Tu script de renombrado de archivos/directorios (el que ya te funcionaba)
+        # ... (pega aquí tu script de find/mv refinado) ...
         run: |
           PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
           NEW_NAME="${{ steps.names.outputs.new_name }}"
           echo "--- Renaming Files/Dirs ---"
-          echo "Placeholder: [$PLACEHOLDER]"
-          echo "New Name:    [$NEW_NAME]"
-          echo "Starting directory: $(pwd)"
-          echo "Listing files containing placeholder (case-sensitive):"
-          find . -depth -name "*$PLACEHOLDER*" || echo "No case-sensitive matches found."
-          echo "Listing files containing placeholder (case-insensitive):"
-          find . -depth -iname "*$PLACEHOLDER*" || echo "No case-insensitive matches found."
-          echo "---"
-          # Usa -iname para ser insensible a mayúsculas/minúsculas si es necesario
-          # find . -depth -name "*$PLACEHOLDER*" | while IFS= read -r fname; do
           find . -depth -iname "*$PLACEHOLDER*" | while IFS= read -r fname; do
-            # Verifica si el archivo/directorio todavía existe (pudo ser renombrado como parte de un directorio padre)
-            if [ ! -e "$fname" ]; then
-              echo "Skipping already moved/renamed: $fname"
-              continue
-            fi
-            # Construye el nuevo nombre usando expansión de parámetros de Bash
-            # Esto es generalmente más seguro que sed para nombres de archivo
-            new_fname="${fname//$PLACEHOLDER/$NEW_NAME}" # Reemplazo global insensible al caso si usaste -iname
-            # Si el nombre realmente cambió, intenta renombrar
+            if [ ! -e "$fname" ]; then continue; fi
+            new_fname="${fname//$PLACEHOLDER/$NEW_NAME}"
             if [ "$fname" != "$new_fname" ]; then
-              # Crea el directorio padre si no existe (necesario si renombras algo como dir/subdir)
               mkdir -p "$(dirname "$new_fname")"
-              echo "Attempting rename: '$fname' -> '$new_fname'"
-              # Usa mv con -v para ver la salida en los logs
-              mv -v "$fname" "$new_fname"
-              if [ $? -ne 0 ]; then
-                 echo "ERROR: Failed to rename $fname"
-                 # Puedes decidir si fallar el workflow aquí: exit 1
-              fi
-            else
-              echo "Skipping (no effective name change): $fname"
+              echo "Renaming: '$fname' -> '$new_fname'"
+              mv -v "$fname" "$new_fname" || echo "ERROR: Failed to rename $fname"
             fi
           done
           echo "--- Renaming Complete ---"
-        shell: bash # Asegúrate de que se ejecuta con bash
+        shell: bash
 
-      - name: Replace Content in Files (Linux/Ubuntu Runner)
-        # Usar sed o similar. Cuidado con reemplazar cosas que no debes.
+      - name: Replace Content in Files
+        # Ejecutar solo si la comprobación inicial dice que sí
+        if: steps.check_rename.outputs.should_rename == 'true'
+        # Tu script de reemplazo de contenido (find + sed o similar)
+        # ... (pega aquí tu script de sed) ...
         run: |
           PLACEHOLDER="${{ steps.names.outputs.placeholder }}"
           NEW_NAME="${{ steps.names.outputs.new_name }}"
-          # Busca en todos los archivos de texto comunes. Ajusta según tus tipos de archivo.
+          echo "--- Replacing Content ---"
+          # Asegúrate que la lista de extensiones sea la correcta para tu proyecto
           find . -type f \( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" \) -exec sed -i "s/$PLACEHOLDER/$NEW_NAME/g" {} +
-        # Si usas windows-latest, usarías Get-Content | ForEach-Object { $_ -replace $placeholder, $newName } | Set-Content
+          echo "--- Content Replacement Complete ---"
+        shell: bash
 
       - name: Commit and Push Changes
+        # Ejecutar solo si la comprobación inicial dice que sí
+        if: steps.check_rename.outputs.should_rename == 'true'
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          # Comprobar si hay cambios antes de hacer commit
+          # Comprobar si hay cambios ANTES de intentar hacer commit
           if git diff --staged --quiet; then
-            echo "No changes to commit."
+            echo "No changes staged for commit. Renaming might have failed or already been done."
           else
+            echo "Staged changes detected. Committing and pushing..."
             git commit -m "chore: Rename project from ${{ steps.names.outputs.placeholder }} to ${{ steps.names.outputs.new_name }}"
             git push
           fi
+        # Ya no necesitas pasar GITHUB_TOKEN explícitamente si tienes 'permissions'
