@@ -3,17 +3,20 @@ name: Rename Template Project
 on:
   workflow_dispatch: # Permite ejecución manual desde la pestaña Actions
     inputs:
-      placeholder_name:
-        description: 'Placeholder name to replace (e.g., Template)'
+      placeholder_name_cap:
+        description: 'Placeholder/Old Name (Capitalized, e.g., Template)'
         required: true
         default: 'Template'
+      new_name_cap:
+        description: 'New Name (Capitalized, e.g., MyNewProject)'
+        required: true
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   rename:
-    runs-on: ubuntu-latest # O windows-latest si prefieres PowerShell nativo
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     if: github.event_name == 'workflow_dispatch' || github.event.before == '0000000000000000000000000000000000000000'
@@ -21,68 +24,67 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Necesario para poder hacer push después
-
-      - name: Get Placeholder Name (from input or default)
-        id: get_placeholder
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "::set-output name=value::${{ github.event.inputs.placeholder_name }}"
-          else
-            echo "::set-output name=value::Template"
-          fi
-
-      - name: Get New Repository Name
-        id: repo_name
-        # Extrae el nombre del repo de 'owner/repo-name'
-        run: echo "::set-output name=value::$(echo '${{ github.repository }}' | awk -F / '{print $2}')"
+          fetch-depth: 0 
 
       - name: Define Names (Capitalized and Lowercase)
         id: names
         run: |
-          # 1. Obtener Placeholder Capitalizado
+          # Inicializar variables
+          PLACEHOLDER_CAP=""
+          NEW_NAME_CAP=""
+
+          # Determinar nombres basado en el trigger
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Manual trigger: Getting names from inputs."
             PLACEHOLDER_CAP="${{ github.event.inputs.placeholder_name_cap }}"
+            NEW_NAME_CAP="${{ github.event.inputs.new_name_cap }}" # <-- Usa el nuevo input
           else
-            PLACEHOLDER_CAP="Template"
+            echo "Push trigger: Using default placeholder and deriving new name from repo."
+            PLACEHOLDER_CAP="Template" # <-- Asegúrate que este sea tu placeholder por defecto
+            NEW_NAME_RAW=$(echo '${{ github.repository }}' | awk -F / '{print $2}')
+            NEW_NAME_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${NEW_NAME_RAW:0:1})${NEW_NAME_RAW:1}"
           fi
 
-          # 2. Obtener Nuevo Nombre Capitalizado (del nombre del repo)
-          NEW_NAME_RAW=$(echo '${{ github.repository }}' | awk -F / '{print $2}')
-          NEW_NAME_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${NEW_NAME_RAW:0:1})${NEW_NAME_RAW:1}"
-
-          # 3. Derivar versiones en minúscula
+          # --- Derivar versiones en minúscula (lógica común) ---
           PLACEHOLDER_LC=$(echo "$PLACEHOLDER_CAP" | tr '[:upper:]' '[:lower:]')
           NEW_NAME_LC=$(echo "$NEW_NAME_CAP" | tr '[:upper:]' '[:lower:]')
 
-          # 4. Validar que no estén vacíos
+          # --- Validación (lógica común) ---
           if [[ -z "$PLACEHOLDER_CAP" || -z "$PLACEHOLDER_LC" || -z "$NEW_NAME_CAP" || -z "$NEW_NAME_LC" ]]; then
-            echo "::error::Failed to derive all name variants."
+            echo "::error::Failed to derive all name variants. Check inputs/defaults and repo name."
+            echo "Debug: PCap='${PLACEHOLDER_CAP}', PLc='${PLACEHOLDER_LC}', NCap='${NEW_NAME_CAP}', NLc='${NEW_NAME_LC}'"
             exit 1
           fi
 
-          # 5. Establecer outputs
+          # --- Establecer outputs (lógica común) ---
           echo "::set-output name=placeholder_cap::$PLACEHOLDER_CAP"
           echo "::set-output name=placeholder_lc::$PLACEHOLDER_LC"
           echo "::set-output name=new_name_cap::$NEW_NAME_CAP"
           echo "::set-output name=new_name_lc::$NEW_NAME_LC"
 
+          # --- Imprimir para logs ---
+          echo "--- Determined Names ---"
+          echo "Trigger: ${{ github.event_name }}"
           echo "Placeholder (Cap): $PLACEHOLDER_CAP"
           echo "Placeholder (lc):  $PLACEHOLDER_LC"
           echo "New Name (Cap):    $NEW_NAME_CAP"
           echo "New Name (lc):     $NEW_NAME_LC"
+          echo "----------------------"
         shell: bash
 
       - name: Check if Rename Already Done / Needed
         id: check_rename
         run: |
           PLACEHOLDER_CAP="${{ steps.names.outputs.placeholder_cap }}"
-          if find . -depth -iname "*$PLACEHOLDER_CAP*" -print -quit | grep -q .; then
-            echo "Placeholder potentially found. Proceeding with rename logic."
-            echo "::set-output name=should_rename::true"
+          if find . -depth -print0 | xargs -0 grep -i -l "$PLACEHOLDER_CAP" -I --null | grep -q .; then
+             echo "Placeholder '$PLACEHOLDER_CAP' potentially found (case-insensitive search). Proceeding with rename logic."
+             echo "::set-output name=should_rename::true"
+          elif find . -depth -iname "*$PLACEHOLDER_CAP*" -print -quit | grep -q .; then
+              echo "Placeholder '$PLACEHOLDER_CAP' potentially found in filename/dirname (case-insensitive). Proceeding with rename logic."
+              echo "::set-output name=should_rename::true"
           else
-            echo "Placeholder not found case-insensitively. Assuming rename already done or not needed. Skipping steps."
-            echo "::set-output name=should_rename::false"
+             echo "Placeholder '$PLACEHOLDER_CAP' not found case-insensitively. Assuming rename already done or not needed. Skipping steps."
+             echo "::set-output name=should_rename::false"
           fi
         shell: bash
 
@@ -98,27 +100,20 @@ jobs:
 
           echo "--- Renaming Files/Dirs (Case-Aware) ---"
           find . -depth -print0 | while IFS= read -r -d $'\0' fname; do
-            if ! echo "$fname" | grep -qP "(?i)${PLACEHOLDER_CAP}"; then
+            if ! echo "$fname" | grep -qi "$PLACEHOLDER_CAP"; then
                continue
             fi
 
-            if [ ! -e "$fname" ]; then
-              # echo "Skipping already moved/renamed: $fname" # Muy verboso, opcional
-              continue
-            fi
+            if [ ! -e "$fname" ]; then continue; fi
 
             original_fname="$fname"
             new_fname_temp=$(echo "$fname" | sed "s#$PLACEHOLDER_CAP#$NEW_NAME_CAP#g")
             new_fname=$(echo "$new_fname_temp" | sed "s#$PLACEHOLDER_LC#$NEW_NAME_LC#g")
 
-
             if [ "$original_fname" != "$new_fname" ]; then
               mkdir -p "$(dirname "$new_fname")"
               echo "Attempting rename: '$original_fname' -> '$new_fname'"
-              mv -v "$original_fname" "$new_fname"
-              if [ $? -ne 0 ]; then
-                 echo "ERROR: Failed to rename $original_fname"
-              fi
+              mv -v "$original_fname" "$new_fname" || echo "ERROR: Failed to rename $original_fname"
             fi
           done
           echo "--- Renaming Complete ---"
@@ -133,11 +128,10 @@ jobs:
           NEW_NAME_LC="${{ steps.names.outputs.new_name_lc }}"
 
           echo "--- Replacing Content (Case-Aware) ---"
+          # Definir los tipos de archivo a procesar (escapar el punto)
           FILE_PATTERNS=( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" )
 
           # Usar find con -exec sed y dos expresiones -e
-          # La primera reemplaza Template -> NuevoNombre (case-sensitive)
-          # La segunda reemplaza template -> nuevonombre (case-sensitive)
           find . -type f \( "${FILE_PATTERNS[@]}" \) -exec sed -i \
             -e "s#$PLACEHOLDER_CAP#$NEW_NAME_CAP#g" \
             -e "s#$PLACEHOLDER_LC#$NEW_NAME_LC#g" {} +
