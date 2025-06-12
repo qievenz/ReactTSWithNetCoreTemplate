@@ -6,18 +6,18 @@ WORKDIR /app
 EXPOSE 80
 
 # Copiar todos los archivos del proyecto al contenedor
-COPY ["Template.API/Template.API.csproj", "Template.API/"]
-COPY ["Template.Infrastructure/Template.Infrastructure.csproj", "Template.Infrastructure/"]
-COPY ["Template.Application/Template.Application.csproj", "Template.Application/"]
-COPY ["Template.Core/Template.Core.csproj", "Template.Core/"]
+COPY ["ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj", "ReactTSWithNetCoreTemplate.API/"]
+COPY ["ReactTSWithNetCoreTemplate.Infrastructure/ReactTSWithNetCoreTemplate.Infrastructure.csproj", "ReactTSWithNetCoreTemplate.Infrastructure/"]
+COPY ["ReactTSWithNetCoreTemplate.Application/ReactTSWithNetCoreTemplate.Application.csproj", "ReactTSWithNetCoreTemplate.Application/"]
+COPY ["ReactTSWithNetCoreTemplate.Core/ReactTSWithNetCoreTemplate.Core.csproj", "ReactTSWithNetCoreTemplate.Core/"]
 
 # Restaurar las dependencias
-RUN dotnet restore "Template.API/Template.API.csproj"
+RUN dotnet restore "ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj"
 
 COPY . .
 
 # Construir la aplicación en modo Release
-RUN dotnet publish "Template.API/Template.API.csproj" -c Release -o /app/out
+RUN dotnet publish "ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj" -c Release -o /app/out
 
 # Etapa 2: Imagen final para ejecución
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
@@ -38,4 +38,4 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Configurar el punto de entrada de la aplicación
-ENTRYPOINT ["dotnet", "Template.API.dll"]
+ENTRYPOINT ["dotnet", "ReactTSWithNetCoreTemplate.API.dll"]
