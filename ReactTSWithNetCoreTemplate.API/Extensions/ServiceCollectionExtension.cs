@@ -22,5 +22,39 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
 
             return services;
         }
+
+        public static IServiceCollection AddServices(this IServiceCollection services, IConfiguration configuration, bool isDevelopment)
+        {
+            //services.AddDbContext<ApplicationDbContext>(options =>
+            //    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddControllers();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllOrigins",
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin()
+                               .AllowAnyMethod()
+                               .AllowAnyHeader();
+                    });
+            });
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen();
+            services.AddProblemDetails(options =>
+            {
+                options.CustomizeProblemDetails = context =>
+                {
+                    context.ProblemDetails.Extensions.Add("traceId", context.HttpContext.TraceIdentifier);
+
+                    if (!isDevelopment)
+                        context.ProblemDetails.Detail = null;
+                };
+            });
+            services.AddExceptionHandler<GlobalExceptionHandler>();
+            services.AddProblemDetails();
+
+            return services;
+        }
     }
 }

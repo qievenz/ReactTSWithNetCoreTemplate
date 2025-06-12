@@ -22,23 +22,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Services.AddSettings(configuration);
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddProblemDetails(options =>
-{
-    options.CustomizeProblemDetails = context =>
-    {
-        context.ProblemDetails.Extensions.Add("traceId", context.HttpContext.TraceIdentifier);
-
-        if (!builder.Environment.IsDevelopment())
-            context.ProblemDetails.Detail = null;
-    };
-});
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-
-//Services
+builder.Services.AddServices(configuration, builder.Environment.IsDevelopment());
 
 var app = builder.Build();
 
