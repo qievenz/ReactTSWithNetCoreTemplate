@@ -3,15 +3,15 @@ services:
     image: "mcr.microsoft.com/mssql/server:2022-latest"
     container_name: "mssql_db"
     environment:
-      - SA_PASSWORD=123456
+      - SA_PASSWORD=ChangeThis!!1
       - ACCEPT_EULA=Y
     volumes:
       - mssql_data:/var/opt/mssql
 
   api:
     build:
-      context: .
-      dockerfile: src/ReactTSWithNetCoreTemplate.API/Dockerfile
+      context: ./src
+      dockerfile: ReactTSWithNetCoreTemplate.API/Dockerfile
     container_name: reacttswithnetcoretemplate_api
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
@@ -34,3 +34,5 @@ services:
 
 volumes:
   mssql_data:
+
+#docker-compose -p reacttswithnetcoretemplate down ; docker-compose -p reacttswithnetcoretemplate up --build -d
