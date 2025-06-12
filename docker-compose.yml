@@ -1,25 +1,21 @@
-version: '3.8'
-
 services:
   mssql:
     image: "mcr.microsoft.com/mssql/server:2022-latest"
     container_name: "mssql_db"
     environment:
-      - SA_PASSWORD=Course5!23
+      - SA_PASSWORD=123456
       - ACCEPT_EULA=Y
-    ports:
-      - "1433:1433"
     volumes:
       - mssql_data:/var/opt/mssql
 
   api:
     build:
       context: .
-      dockerfile: src/API.CourseCRUD/Dockerfile
-    container_name: api_coursecrud
+      dockerfile: src/ReactTSWithNetCoreTemplate.API/Dockerfile
+    container_name: reacttswithnetcoretemplate_api
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
-      - ConnectionStrings__DefaultConnection=Server=mssql_db,1433;Database=CourseDB;User=sa;Password=Course5!23;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=mssql_db,1433;Database=CourseDB;User=sa;Password=123456;TrustServerCertificate=True;
       - ASPNETCORE_URLS=http://+:80
     ports:
       - "5010:80"
@@ -28,9 +24,9 @@ services:
 
   client:
     build:
-      context: ./src/client.coursecrud
+      context: ./src/reacttswithnetcoretemplate.client
       dockerfile: Dockerfile
-    container_name: coursecrud_client
+    container_name: reacttswithnetcoretemplate_client
     ports:
       - "3000:80"
     depends_on:
