@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Serilog;
 using ReactTSWithNetCoreTemplate.Core.Settings;
 
 namespace ReactTSWithNetCoreTemplate.API.Controllers
@@ -19,16 +18,8 @@ namespace ReactTSWithNetCoreTemplate.API.Controllers
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            try
-            {
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, $"[GET]");
-                throw;
-            }
 
+            return Ok();
         }
     }
 }

@@ -1,6 +1,6 @@
+using ReactTSWithNetCoreTemplate.API.Extensions;
 using Serilog;
 using Serilog.Events;
-using ReactTSWithNetCoreTemplate.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName;
@@ -25,6 +25,18 @@ builder.Services.AddSettings(configuration);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Extensions.Add("traceId", context.HttpContext.TraceIdentifier);
+
+        if (!builder.Environment.IsDevelopment())
+            context.ProblemDetails.Detail = null;
+    };
+});
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 //Services
 
@@ -35,6 +47,7 @@ app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseAuthorization();
+app.UseExceptionHandler();
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
 app.Run();

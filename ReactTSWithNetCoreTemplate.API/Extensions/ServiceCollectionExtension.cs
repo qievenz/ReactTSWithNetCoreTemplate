@@ -1,11 +1,10 @@
-﻿using System.Reflection;
-using ReactTSWithNetCoreTemplate.Core.Settings;
+﻿using ReactTSWithNetCoreTemplate.Core.Settings;
+using System.Reflection;
 
 namespace ReactTSWithNetCoreTemplate.API.Extensions
 {
     public static class ServiceCollectionExtension
     {
-
         public static IServiceCollection AddSettings(this IServiceCollection services, IConfiguration configuration)
         {
             var settingsTypes = Assembly.GetAssembly(typeof(AppSettings)).GetTypes()
