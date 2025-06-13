@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.EntityFrameworkCore;
 using ReactTSWithNetCoreTemplate.Infrastructure.Persistence;
 using Serilog;
 
@@ -40,6 +42,10 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
             app.UseExceptionHandler();
             app.MapControllers();
             app.MapFallbackToFile("/index.html");
+            app.UseHealthChecks("/health", new HealthCheckOptions
+            {
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
 
             return app;
         }
