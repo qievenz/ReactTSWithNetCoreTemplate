@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ReactTSWithNetCoreTemplate.Infrastructure.Persistence;
 
-namespace API.CourseCRUD.Extensions
+namespace ReactTSWithNetCoreTemplate.API.Extensions
 {
     public static class ApplicationBuilderExtensions
     {
@@ -34,6 +34,7 @@ namespace API.CourseCRUD.Extensions
             app.UseSwaggerUI();
             app.UseHttpsRedirection();
             app.UseCors("AllowAllOrigins");
+            app.UseAuthentication();
             app.UseAuthorization();
             app.UseExceptionHandler();
             app.MapControllers();

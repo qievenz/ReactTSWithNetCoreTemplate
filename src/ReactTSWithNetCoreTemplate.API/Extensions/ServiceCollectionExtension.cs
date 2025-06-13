@@ -1,4 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ReactTSWithNetCoreTemplate.API.Authentication;
+using ReactTSWithNetCoreTemplate.API.Middlewares;
+using ReactTSWithNetCoreTemplate.API.Swagger;
 using ReactTSWithNetCoreTemplate.Application.Services;
 using ReactTSWithNetCoreTemplate.Core.Repositories;
 using ReactTSWithNetCoreTemplate.Core.Services;
@@ -46,7 +49,21 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
                     });
             });
             services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen();
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ReactTSWithNetCoreTemplate API", Version = "v1" });
+
+                c.AddSecurityDefinition(ApiKeyAuthOptions.SchemeName, new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Description = $"Ingrese su token en el campo de texto de abajo. Ejemplo: \"Bearer ABC123XYZ\""
+                });
+
+                c.OperationFilter<AuthorizeCheckOperationFilter>();
+            });
             services.AddProblemDetails(options =>
             {
                 options.CustomizeProblemDetails = context =>
@@ -56,6 +73,8 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
                 };
             });
             services.AddExceptionHandler<GlobalExceptionHandler>();
+            services.AddApiKeyAuthentication(configuration);
+            services.AddAuthorization();
 
             services.AddScoped<IDataRepository, DataRepository>();
             services.AddScoped<IDataService, DataService>();

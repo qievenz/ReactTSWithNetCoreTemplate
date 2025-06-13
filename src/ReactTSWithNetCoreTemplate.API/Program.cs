@@ -1,4 +1,3 @@
-using API.CourseCRUD.Extensions;
 using ReactTSWithNetCoreTemplate.API.Extensions;
 using Serilog;
 using Serilog.Events;

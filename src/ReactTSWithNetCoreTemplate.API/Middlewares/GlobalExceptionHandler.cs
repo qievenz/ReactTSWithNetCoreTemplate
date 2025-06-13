@@ -4,7 +4,7 @@ using ReactTSWithNetCoreTemplate.Core.Exceptions;
 using Serilog;
 using System.Net;
 
-namespace ReactTSWithNetCoreTemplate.API
+namespace ReactTSWithNetCoreTemplate.API.Middlewares
 {
     public class GlobalExceptionHandler : IExceptionHandler
     {
@@ -34,7 +34,7 @@ namespace ReactTSWithNetCoreTemplate.API
             {
                 problemDetails.Status = (int)HttpStatusCode.NotFound;
                 problemDetails.Title = "Resource Not Found";
-                problemDetails.Detail = notFoundEx.Message; // Oculta detalles en producción
+                problemDetails.Detail = notFoundEx.Message;
                 problemDetails.Type = "https://example.com/probs/resource-not-found";
             }
             else if (exception is ArgumentException argEx)

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ReactTSWithNetCoreTemplate.Core.Entities;
 using ReactTSWithNetCoreTemplate.Core.Services;
 using Serilog;
@@ -87,6 +88,7 @@ namespace ReactTSWithNetCoreTemplate.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ProblemDetails))]
         [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ProblemDetails))]
         [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ProblemDetails))]
+        [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
             Log.Information("DELETE /api/Data/{Id} - Request to delete data record with ID: {Id}.", id);
