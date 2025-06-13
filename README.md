@@ -2,6 +2,6 @@
 
 React TypeScript with .NET Core Web API template
 
-dotnet ef migrations add InitialCreate
+docker-compose -p reacttswithnetcoretemplate down ; docker-compose -p reacttswithnetcoretemplate up --build -d
+
 dotnet ef migrations add InitialCreate -p src\ReactTSWithNetCoreTemplate.Infrastructure -s src\ReactTSWithNetCoreTemplate.API
-dotnet ef database update
