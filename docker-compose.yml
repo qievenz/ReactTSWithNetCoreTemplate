@@ -15,7 +15,7 @@ services:
     container_name: reacttswithnetcoretemplate_api
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
-      - ConnectionStrings__DefaultConnection=Server=mssql_db,1433;Database=CourseDB;User=sa;Password=123456;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Server=mssql_db,1433;Database=ReactTSWithNetCoreTemplateDB;User=sa;Password=ChangeThis!!1;TrustServerCertificate=True;
       - ASPNETCORE_URLS=http://+:80
     ports:
       - "5010:80"

@@ -1,8 +1,9 @@
-﻿using System.Threading.Channels;
+﻿using ReactTSWithNetCoreTemplate.Core.Services;
+using System.Threading.Channels;
 
-namespace ReactTSWithNetCoreTemplate.Application
+namespace ReactTSWithNetCoreTemplate.Application.Services
 {
-    public class ChannelDataProcessor<T> : IChannelDataProcessor<T>
+    public class ChannelDataService<T> : IChannelDataService<T>
     {
         private readonly Channel<T> _channel;
         private readonly int _workerCount;
@@ -10,7 +11,7 @@ namespace ReactTSWithNetCoreTemplate.Application
 
         /// <param name="workerCount">The number of tasks (workers) that will process messages.</param>
         /// <param name="processMessageAsync">An asynchronous function to process each message.</param>
-        public ChannelDataProcessor(int workerCount, Func<T, Task> processMessageAsync)
+        public ChannelDataService(int workerCount, Func<T, Task> processMessageAsync)
         {
             if (workerCount <= 0)
                 throw new ArgumentException("Worker count must be greater than 0.", nameof(workerCount));

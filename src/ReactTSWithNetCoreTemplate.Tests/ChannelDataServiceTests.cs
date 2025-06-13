@@ -1,13 +1,11 @@
-﻿using ReactTSWithNetCoreTemplate.Application;
+﻿using ReactTSWithNetCoreTemplate.Application.Services;
 using System.Diagnostics;
 
 namespace ReactTSWithNetCoreTemplate.Tests
 {
     [TestFixture]
-    public class ChannelDataProcessorTests
+    public class ChannelDataServiceTests
     {
-        private ChannelDataProcessor<int> _channelDataProcessor;
-
         [Test]
         public async Task TestHighVolumeProcessing()
         {
@@ -22,7 +20,7 @@ namespace ReactTSWithNetCoreTemplate.Tests
                 Interlocked.Increment(ref processedCount);
             };
 
-            var processor = new ChannelDataProcessor<int>(workerCount, processMessageAsync);
+            var processor = new ChannelDataService<int>(workerCount, processMessageAsync);
 
             Stopwatch stopwatch = Stopwatch.StartNew();
             Task processingTask = processor.StartProcessingAsync();

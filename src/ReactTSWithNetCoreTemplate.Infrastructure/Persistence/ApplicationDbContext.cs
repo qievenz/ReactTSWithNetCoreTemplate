@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ReactTSWithNetCoreTemplate.Core.Entities;
 
 namespace ReactTSWithNetCoreTemplate.Infrastructure.Persistence
 {
@@ -9,6 +10,6 @@ namespace ReactTSWithNetCoreTemplate.Infrastructure.Persistence
         {
         }
 
-        //public DbSet<ReactTSWithNetCoreTemplateTableName> ReactTSWithNetCoreTemplateTableNames { get; set; }
+        public DbSet<Data> Datas { get; set; }
     }
 }

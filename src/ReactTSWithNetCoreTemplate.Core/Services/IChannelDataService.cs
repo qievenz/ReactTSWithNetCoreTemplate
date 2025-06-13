@@ -1,7 +1,6 @@
-﻿
-namespace ReactTSWithNetCoreTemplate.Application
+﻿namespace ReactTSWithNetCoreTemplate.Core.Services
 {
-    public interface IChannelDataProcessor<T>
+    public interface IChannelDataService<T>
     {
         void CompletePublishing();
         Task PublishMessageAsync(T message);
