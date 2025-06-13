@@ -128,7 +128,7 @@ jobs:
 
           echo "--- Replacing Content (Case-Aware) ---"
           # Definir los tipos de archivo a procesar (escapar el punto)
-          FILE_PATTERNS=( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" )
+          FILE_PATTERNS=( -name "*.sln" -o -name "*.csproj" -o -name "*.cs" -o -name "*.json" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" -o -name "Dockerfile" )
 
           # Usar find con -exec sed y dos expresiones -e
           find . -type f \( "${FILE_PATTERNS[@]}" \) -exec sed -i \
