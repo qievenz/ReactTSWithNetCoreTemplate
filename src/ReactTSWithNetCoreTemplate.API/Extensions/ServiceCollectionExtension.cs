@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using ReactTSWithNetCoreTemplate.API.Authentication;
+using ReactTSWithNetCoreTemplate.API.BackgroundServices;
 using ReactTSWithNetCoreTemplate.API.Middlewares;
 using ReactTSWithNetCoreTemplate.API.Swagger;
 using ReactTSWithNetCoreTemplate.Application.Services;
@@ -81,7 +81,11 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
             services.AddHealthChecks(configuration);
 
             services.AddScoped<IDataRepository, DataRepository>();
+
             services.AddScoped<IDataService, DataService>();
+            services.AddSingleton<IChannelProcessorService<int>, ChannelProcessorService<int>>();
+
+            services.AddHostedService<ChannelBackgroundService<int>>();
 
             return services;
         }
@@ -93,7 +97,7 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
                     connectionString: configuration.GetConnectionString("DefaultConnection"),
                     healthQuery: "SELECT 1;",
                     name: "SQL Server Database",
-                    failureStatus: HealthStatus.Degraded, 
+                    failureStatus: HealthStatus.Degraded,
                     tags: new[] { "db", "sql", "critical" }
                 );
 

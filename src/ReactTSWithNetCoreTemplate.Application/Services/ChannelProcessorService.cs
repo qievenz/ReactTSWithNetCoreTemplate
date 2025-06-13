@@ -1,24 +1,15 @@
 ﻿using ReactTSWithNetCoreTemplate.Core.Services;
+using Serilog;
 using System.Threading.Channels;
 
 namespace ReactTSWithNetCoreTemplate.Application.Services
 {
-    public class ChannelDataService<T> : IChannelDataService<T>
+    public class ChannelProcessorService<T> : IChannelProcessorService<T>
     {
         private readonly Channel<T> _channel;
-        private readonly int _workerCount;
-        private readonly Func<T, Task> _processMessageAsync;
 
-        /// <param name="workerCount">The number of tasks (workers) that will process messages.</param>
-        /// <param name="processMessageAsync">An asynchronous function to process each message.</param>
-        public ChannelDataService(int workerCount, Func<T, Task> processMessageAsync)
+        public ChannelProcessorService()
         {
-            if (workerCount <= 0)
-                throw new ArgumentException("Worker count must be greater than 0.", nameof(workerCount));
-
-            _workerCount = workerCount;
-            _processMessageAsync = processMessageAsync ?? throw new ArgumentNullException(nameof(processMessageAsync));
-
             _channel = Channel.CreateUnbounded<T>(new UnboundedChannelOptions
             {
                 SingleReader = false,
@@ -47,10 +38,14 @@ namespace ReactTSWithNetCoreTemplate.Application.Services
         /// Starts processing messages by launching the configured number of worker tasks.
         /// </summary>
         /// <param name="cancellationToken">A token to cancel the processing.</param>
-        public async Task StartProcessingAsync(CancellationToken cancellationToken = default)
+        public async Task StartProcessingAsync(int workerCount, Func<T, Task> processMessageAsync, TimeSpan? delay = null, CancellationToken cancellationToken = default)
         {
-            Task[] tasks = new Task[_workerCount];
-            for (int i = 0; i < _workerCount; i++)
+            if (workerCount <= 0)
+                throw new ArgumentException("Worker count must be greater than 0.", nameof(workerCount));
+
+            Task[] tasks = new Task[workerCount];
+
+            for (int i = 0; i < workerCount; i++)
             {
                 tasks[i] = Task.Run(async () =>
                 {
@@ -58,15 +53,19 @@ namespace ReactTSWithNetCoreTemplate.Application.Services
                     {
                         try
                         {
-                            await _processMessageAsync(message);
+                            await processMessageAsync(message);
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error processing message: {ex.Message}");
+                            Log.Error($"Error processing message: {ex.Message}");
                         }
                     }
                 }, cancellationToken);
             }
+
+            if (delay != null)
+                await Task.Delay(delay.Value);
+
             await Task.WhenAll(tasks);
         }
     }

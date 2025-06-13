@@ -11,10 +11,12 @@ namespace ReactTSWithNetCoreTemplate.API.Controllers
     public class DataController : ControllerBase
     {
         private readonly IDataService _dataService;
+        private readonly IChannelProcessorService<int> _channelProcessorService;
 
-        public DataController(IDataService dataService)
+        public DataController(IDataService dataService, IChannelProcessorService<int> channelProcessorService)
         {
             _dataService = dataService;
+            _channelProcessorService = channelProcessorService;
         }
 
         [HttpGet]
@@ -96,6 +98,14 @@ namespace ReactTSWithNetCoreTemplate.API.Controllers
             Log.Information("DELETE /api/Data/{Id} - Data record with ID {Id} deleted successfully.", id);
 
             return NoContent();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddNumberToChannel(int number)
+        {
+            await _channelProcessorService.PublishMessageAsync(number);
+
+            return Accepted();
         }
     }
 }
