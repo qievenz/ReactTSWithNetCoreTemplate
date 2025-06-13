@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 		docker-compose.yml = docker-compose.yml
 		README.md = README.md
+		.github\workflows\rename_solution.yml = .github\workflows\rename_solution.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReactTSWithNetCoreTemplate.Application", "src\ReactTSWithNetCoreTemplate.Application\ReactTSWithNetCoreTemplate.Application.csproj", "{F6E810AB-8F2F-444E-9581-891BD8954D14}"

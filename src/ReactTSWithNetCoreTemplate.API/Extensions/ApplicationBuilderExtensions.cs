@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ReactTSWithNetCoreTemplate.Infrastructure.Persistence;
+using Serilog;
 
 namespace ReactTSWithNetCoreTemplate.API.Extensions
 {
@@ -22,7 +23,7 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Database is not ready yet: {ex.Message}. Retrying in 5 seconds...");
+                        Log.Warning($"Database is not ready yet: {ex.Message}. Retrying in 5 seconds...");
                         Thread.Sleep(TimeSpan.FromSeconds(5));
                     }
                 }

@@ -63,6 +63,7 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
                 });
 
                 c.OperationFilter<AuthorizeCheckOperationFilter>();
+                c.OperationFilter<IFormFileOperationFilter>();
             });
             services.AddProblemDetails(options =>
             {
