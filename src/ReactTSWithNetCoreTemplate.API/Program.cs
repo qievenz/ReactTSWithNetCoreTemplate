@@ -1,3 +1,4 @@
+using API.CourseCRUD.Extensions;
 using ReactTSWithNetCoreTemplate.API.Extensions;
 using Serilog;
 using Serilog.Events;
@@ -26,12 +27,6 @@ builder.Services.AddServices(configuration, builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
-app.UseSwagger();
-app.UseSwaggerUI();
-app.UseAuthorization();
-app.UseExceptionHandler();
-app.MapControllers();
-app.MapFallbackToFile("/index.html");
+app.AddUsings();
+
 app.Run();
