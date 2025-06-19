@@ -15,9 +15,27 @@ services:
       context: .
       dockerfile: src/ReactTSWithNetCoreTemplate.API/Dockerfile
     environment:
+      - ASPNETCORE_ENVIRONMENT=Release
       - ConnectionStrings__DefaultConnection=Server=reacttswithnetcoretemplate_db,1433;Database=ReactTSWithNetCoreTemplateDB;User=sa;Password=ChangeThis!!1;TrustServerCertificate=True;
       - ApiKeyAuthOptions__SecretToken=SecretTokenToTest123
+    ports:
+      - "5000:8080"
+    depends_on:
+      - reacttswithnetcoretemplate.mssql
+
+  reacttswithnetcoretemplate.client:
+    build:
+      context: ./src/reacttswithnetcoretemplate.client
+      dockerfile: Dockerfile
+    container_name: reacttswithnetcoretemplate_client
+    ports:
+      - "3000:80"
+    depends_on:
+      - reacttswithnetcoretemplate.api
       
 volumes:
  reacttswithnetcoretemplate_mssql_data:
-    
+
+
+#docker-compose -f docker-compose.release.yml -p reacttswithnetcoretemplate down ; docker-compose -f docker-compose.release.yml -p reacttswithnetcoretemplate up --build -d
+

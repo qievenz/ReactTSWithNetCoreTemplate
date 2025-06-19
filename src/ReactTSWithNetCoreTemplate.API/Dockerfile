@@ -1,41 +1,35 @@
-# Etapa 1: Construcción de la aplicación
+# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+# This stage is used when running from VS in fast mode (Default for Debug configuration)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+USER $APP_UID
+WORKDIR /app
+EXPOSE 8080
+
+
+# This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /app
-
-# Exponer el puerto 80 para la aplicación
-EXPOSE 80
-
-# Copiar todos los archivos del proyecto al contenedor
-COPY ["ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj", "ReactTSWithNetCoreTemplate.API/"]
-COPY ["ReactTSWithNetCoreTemplate.Infrastructure/ReactTSWithNetCoreTemplate.Infrastructure.csproj", "ReactTSWithNetCoreTemplate.Infrastructure/"]
-COPY ["ReactTSWithNetCoreTemplate.Application/ReactTSWithNetCoreTemplate.Application.csproj", "ReactTSWithNetCoreTemplate.Application/"]
-COPY ["ReactTSWithNetCoreTemplate.Core/ReactTSWithNetCoreTemplate.Core.csproj", "ReactTSWithNetCoreTemplate.Core/"]
-
-# Restaurar las dependencias
-RUN dotnet restore "ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj"
-
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+COPY ["src/ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj", "src/ReactTSWithNetCoreTemplate.API/"]
+COPY ["src/ReactTSWithNetCoreTemplate.Infrastructure/ReactTSWithNetCoreTemplate.Infrastructure.csproj", "src/ReactTSWithNetCoreTemplate.Infrastructure/"]
+COPY ["src/ReactTSWithNetCoreTemplate.Application/ReactTSWithNetCoreTemplate.Application.csproj", "src/ReactTSWithNetCoreTemplate.Application/"]
+COPY ["src/ReactTSWithNetCoreTemplate.Core/ReactTSWithNetCoreTemplate.Core.csproj", "src/ReactTSWithNetCoreTemplate.Core/"]
+RUN dotnet restore "./src/ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj"
 COPY . .
+WORKDIR "/src/src/ReactTSWithNetCoreTemplate.API"
+RUN dotnet build "./ReactTSWithNetCoreTemplate.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# Construir la aplicación en modo Release
-RUN dotnet publish "ReactTSWithNetCoreTemplate.API/ReactTSWithNetCoreTemplate.API.csproj" -c Release -o /app/out
-
-# Etapa 2: Imagen final para ejecución
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
-WORKDIR /app
-
-# Copiar los archivos compilados de la etapa de build
-COPY --from=build /app/out .
+# This stage is used to publish the service project to be copied to the final stage
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./ReactTSWithNetCoreTemplate.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Setup TimeZone as Argentina
 ENV TZ=America/Buenos_Aires
 
-RUN apt-get update && \
-    apt-get install -y gnupg curl && \
-    curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-archive-keyring.gpg && \
-    echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.4.list && \
-    apt-get update && \
-    apt-get install -y mongodb-org-tools && \
-    rm -rf /var/lib/apt/lists/*
-
-# Configurar el punto de entrada de la aplicación
+# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "ReactTSWithNetCoreTemplate.API.dll"]
