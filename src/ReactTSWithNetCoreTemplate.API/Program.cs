@@ -20,8 +20,8 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .Enrich.WithCallerInfo(includeFileInfo: true, assemblyPrefix: "ReactTSWithNetCoreTemplate.")
-    .WriteTo.Console()
-    .WriteTo.File($"{logFilePath}/log-.txt", rollingInterval: RollingInterval.Day)
+    .WriteTo.Console(outputTemplate: outputTemplate)
+    .WriteTo.File(path: $"{logFilePath}/log-.txt", outputTemplate: outputTemplate, rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
 builder.Services.AddSettings(configuration);
