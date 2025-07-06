@@ -11,6 +11,7 @@ using ReactTSWithNetCoreTemplate.Core.Settings;
 using ReactTSWithNetCoreTemplate.Infrastructure.Persistence;
 using ReactTSWithNetCoreTemplate.Infrastructure.Repositories;
 using System.Reflection;
+using System.Text.Json.Serialization;
 
 namespace ReactTSWithNetCoreTemplate.API.Extensions
 {
@@ -39,7 +40,11 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddControllers();
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowAllOrigins",
