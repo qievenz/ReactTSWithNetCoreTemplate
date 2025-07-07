@@ -59,15 +59,15 @@ namespace ReactTSWithNetCoreTemplate.API.Extensions
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "ReactTSWithNetCoreTemplate API", Version = "v1" });
-
                 c.AddSecurityDefinition(ApiKeyAuthOptions.SchemeName, new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                 {
                     Name = "Authorization",
                     Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
                     Scheme = "Bearer",
                     In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-                    Description = $"Ingrese su token en el campo de texto de abajo. Ejemplo: \"Bearer ABC123XYZ\""
+                    Description = $"Enter token below. Ex.: \"Bearer ABC123XYZ\""
                 });
+                c.IncludeXmlComments(Path.Combine(System.AppContext.BaseDirectory, "ReactTSWithNetCoreTemplate.API.xml"));
 
                 c.OperationFilter<AuthorizeCheckOperationFilter>();
                 c.OperationFilter<IFormFileOperationFilter>();

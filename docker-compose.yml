@@ -7,6 +7,12 @@ services:
       - ACCEPT_EULA=Y
     volumes:
       - reacttswithnetcoretemplate_mssql_data:/var/opt/mssql
+    healthcheck:
+        test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "ChangeThis!!1", "-Q", "SELECT 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 20s
 
   reacttswithnetcoretemplate.api:
     image: ${DOCKER_REGISTRY-}reacttswithnetcoretemplateapi
