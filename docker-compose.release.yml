@@ -7,6 +7,12 @@ services:
       - ACCEPT_EULA=Y
     volumes:
       - reacttswithnetcoretemplate_mssql_data:/var/opt/mssql
+    healthcheck:
+        test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "ChangeThis!!1", "-Q", "SELECT 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 20s
 
   reacttswithnetcoretemplate.api:
     image: ${DOCKER_REGISTRY-}reacttswithnetcoretemplateapi
@@ -16,12 +22,18 @@ services:
       dockerfile: src/ReactTSWithNetCoreTemplate.API/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
+      - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__DefaultConnection=Server=reacttswithnetcoretemplate_db,1433;Database=ReactTSWithNetCoreTemplateDB;User=sa;Password=ChangeThis!!1;TrustServerCertificate=True;
       - ApiKeyAuthOptions__SecretToken=SecretTokenToTest123
     ports:
       - "5000:8080"
     depends_on:
       - reacttswithnetcoretemplate.mssql
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:80/swagger"]
+        interval: 10s
+        timeout: 3s
+        retries: 5
 
   reacttswithnetcoretemplate.client:
     build:
@@ -32,6 +44,16 @@ services:
       - "3000:80"
     depends_on:
       - reacttswithnetcoretemplate.api
+  
+  portainer-agent:
+    image: portainer/agent
+    container_name: portainer-agent
+    restart: always
+    ports:
+      - "9001:9001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes:/var/lib/docker/volumes
       
 volumes:
  reacttswithnetcoretemplate_mssql_data:
