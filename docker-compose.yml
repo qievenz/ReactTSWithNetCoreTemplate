@@ -24,6 +24,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
       - ASPNETCORE_URLS=http://+:80
+      - TZ=America/Buenos_Aires
       - ConnectionStrings__DefaultConnection=Server=reacttswithnetcoretemplate_db,1433;Database=ReactTSWithNetCoreTemplateDB;User=sa;Password=ChangeThis!!1;TrustServerCertificate=True;
       - ApiKeyAuthOptions__SecretToken=SecretTokenToTest123
 
